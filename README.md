@@ -1,7 +1,10 @@
-# Cripta Nocturna
+# Cripta Nocturna Fork
 
 Survivors de Halloween para celular, al estilo Vampire Survivors / Megabonk. Te movés arrastrando el dedo, tus armas atacan solas y tenés que aguantar hasta el amanecer (10:00). Después el reloj sigue y los enemigos se vuelven cada vez más letales.
 
+## ADVERTENCIA
+- Si venis del juego original, esperate encontrar armas y personajes totalmente rotos e impresionantes, además de un gran contenido del juego hecho con inteligencia artificial
+  
 ## Cómo jugar
 
 Abrí `index.html` en el navegador (celular o compu). No necesita instalación ni servidor.
