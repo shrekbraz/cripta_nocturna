@@ -902,6 +902,10 @@ const WDEF={
   agua:{name:'Agua bendita',col:'#7ac8ff',
     up:['Arroja frascos que dejan un charco que quema.','+1 frasco','Charco más grande y +3 de daño','El charco dura más y +3 de daño','+1 frasco y charco más grande'],
     dmg:[6,6,9,12,12],cd:[2.6,2.4,2.4,2.2,2],n:[1,2,2,2,3],r:[30,30,38,38,46],dur:[2,2,2,2.8,2.8]},
+  tormenta:{name:'Tormenta bendita',col:'#8fe7ff',evo:true,evoFrom:['agua','matraz'],
+    evoDesc:'Evolución de Agua Bendita y Matraz Volátil: lanza hasta 10 frascos a la vez. Cada frasco se dirige a un enemigo aleatorio y conserva el charco bendito y puede producir veneno, ácido que frena o una explosión en cadena.',
+    up:['Diez frascos caen en un área circular aleatoria.','Charco más grande y +8 de daño','+1 círculo y frascos más rápidos','Área más grande y +10 de daño','+1 círculo y explosiones más grandes'],
+    dmg:[18,24,24,34,44],cd:[2.2,2.05,1.9,1.75,1.6],r:[30,38,46,54,62],dur:[2.8,3,3.4,3.8,4.2],n:[10,10,10,10,10]},
   hacha:{name:'Hacha de verdugo',col:'#ff9b8a',
     up:['Lanza hachas en arco que atraviesan todo.','+10 de daño','+1 hacha','+10 de daño','+1 hacha y +10 de daño'],
     dmg:[20,30,30,40,50],cd:[1.4,1.35,1.3,1.2,1.1],n:[1,1,2,2,3]},
@@ -1324,6 +1328,7 @@ const ICON={
   tintero:'<path d="M7 10h10v10H7z"/><path d="M9 10V7h6v3"/><path d="M14 4l6-2"/>',
 };
 ICON.plaga=ICON.murcielagos;
+ICON.tormenta=ICON.agua;
 ICON.furia=ICON.hoces;
 const svg=(id,col)=>`<svg viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg>`;
 
@@ -1465,7 +1470,7 @@ const CHARS={
     active:{name:'Profecía',icon:'ojo',cd:16,desc:'Le hace 70 de daño a todo lo que hay en pantalla y te da 1 moneda por cada enemigo que toca (hasta 30).'},
     grow:{d:n=>'+'+(4*n)+'% de suerte',f:(G,n)=>{G.st.luck+=.04*n;}},
     setup(G){G.st.luck+=.3;G.st.crit+=.1;G.st.xpMul+=.1;}},
-  alquimista:{name:'Elena la Alquimista',short:'Elena',price:3000,weapon:'matraz',hat:'brim',
+  alquimista:{name:'Elena la Alquimista',short:'Elena',price:3500,weapon:'tormenta',hat:'brim',
     col:{cloak:'#2e4a2a',hood:'#1e3320',face:'#f0d8c0',lamp:'#9ae07a'},
     passive:{name:'Piedra filosofal',desc:'+20% de área, +15% de velocidad de proyectil y +25% de monedas.'},
     active:{name:'Elixir',icon:'agua',cd:20,desc:'Recuperás 30% de tu vida y durante 6 segundos hacés 40% más de daño.'},
@@ -1771,9 +1776,9 @@ function spawnEnemy(type,x,y){
   if(d.shield)e.sh=hp*d.shield;
   G.enemies.push(e);return e;}
 // Tope total de enemigos: los enjambres no lo pasan (jefes y calabazas sí, son pocos). Sin tope, en partidas largas se acumulaban miles y el juego se congelaba
-const MAX_EN=420;
+const MAX_EN=1260;
 function spawnUpdate(dt){
-  const t=G.t,cu=1+G.st.curse,target=Math.min(t>=DAWN_M*60?420:380,(12+t*0.9)*cu),rate=(1.2+t/16)*cu*(t>=DAWN_M*60?1.5:1)*(1+.04*Math.max(0,t/60-LATE_M))*(G.mut.horda?1.5:1)*(DIFFS[G.diff].spawn||1);
+  const t=G.t,cu=1+G.st.curse,target=Math.min(t>=DAWN_M*60?1260:1140,(12+t*0.9)*cu),rate=(1.2+t/16)*cu*(t>=DAWN_M*60?1.5:1)*(1+.04*Math.max(0,t/60-LATE_M))*(G.mut.horda?1.5:1)*(DIFFS[G.diff].spawn||1);
   G.spawnAcc+=dt*rate;
   const fog=G.event&&G.event.k==='niebla';
   while(G.spawnAcc>=1){G.spawnAcc--;if(G.enemies.length<target)spawnEnemy(fog&&Math.random()<.35?'ghost':pickType(t+(DIFFS[G.diff].early||0)));}
@@ -1956,10 +1961,14 @@ function updateWeapons(dt){
         G.bolts.push({x:t.x,y:t.y,pts,R,life:.25});
         near(t.x,t.y,R+24,e=>{const d=Math.hypot(e.x-t.x,e.y-t.y);if(d<R+e.r)hurt(e,D.dmg[L],0,0,'rayo');});}
       sfx('zap');
+    }else if(w.id==='tormenta'){w.timer=D.cd[L]*st.cd;const n=D.n[L]+st.amount;
+      const vis=G.enemies.filter(e=>!e.dead&&Math.abs(e.x-p.x)<VW*.45&&Math.abs(e.y-p.y)<VH*.45);
+      for(let i=0;i<n;i++){let tx,ty;if(vis.length){const t=vis[(Math.random()*vis.length)|0];tx=t.x;ty=t.y;}else{const a=Math.random()*TAU,r=rand(40,140);tx=p.x+Math.cos(a)*r;ty=p.y+Math.sin(a)*r;}
+        G.flasks.push({sx:p.x,sy:p.y,tx,ty,t:0,r:D.r[L]*st.area,dmg:D.dmg[L],dur:D.dur[L],fx:'tormenta'});}
     }else if(w.id==='agua'){w.timer=D.cd[L]*st.cd;const n=D.n[L]+st.amount;
       const vis=G.enemies.filter(e=>!e.dead&&Math.abs(e.x-p.x)<VW*.45&&Math.abs(e.y-p.y)<VH*.45);
       for(let i=0;i<n;i++){let tx,ty;if(vis.length){const t=vis[(Math.random()*vis.length)|0];tx=t.x;ty=t.y;}else{const a=Math.random()*TAU,r=rand(40,140);tx=p.x+Math.cos(a)*r;ty=p.y+Math.sin(a)*r;}
-        G.flasks.push({sx:p.x,sy:p.y,tx,ty,t:0,r:D.r[L]*st.area,dmg:D.dmg[L],dur:D.dur[L]});}
+        G.flasks.push({sx:p.x,sy:p.y,tx,ty,t:0,r:D.r[L]*st.area,dmg:D.dmg[L],dur:D.dur[L],fx:'agua'});}
     }else if(w.id==='hacha'){w.timer=D.cd[L]*st.cd;const n=D.n[L]+st.amount;
       const tx=nearestEnemies(1)[0],sd0=tx?(tx.x>=p.x?1:-1):(p.fx>=0?1:-1);
       for(let i=0;i<n;i++){const side=(i%2?-1:1)*sd0;
@@ -2782,7 +2791,7 @@ function draw(now){
       ctx.fillStyle='#ffb36b';ctx.beginPath();ctx.arc(mx,my,7,0,TAU);ctx.fill();ctx.fillStyle='#6b2f1a';ctx.beginPath();ctx.arc(mx+1,my+1,4,0,TAU);ctx.fill();}
     // flasks + whip slashes
     for(const f of G.flasks){const x=f.sx+(f.tx-f.sx)*f.t,y=f.sy+(f.ty-f.sy)*f.t-Math.sin(Math.PI*f.t)*50;
-      ctx.fillStyle=f.fx?'#9ae07a':'#7ac8ff';ctx.beginPath();ctx.arc(x,y,4,0,TAU);ctx.fill();ctx.fillStyle='#e8f6ff';ctx.fillRect(x-1,y-7,2,4);}
+      ctx.fillStyle=f.fx==='tormenta'?'#8fe7ff':f.fx?'#9ae07a':'#7ac8ff';ctx.beginPath();ctx.arc(x,y,4,0,TAU);ctx.fill();ctx.fillStyle='#e8f6ff';ctx.fillRect(x-1,y-7,2,4);}
     for(const sl of G.slashes){const a=sl.life/.2;ctx.save();ctx.translate(sl.x,sl.y);if(sl.ang!==undefined)ctx.rotate(sl.ang);const d=sl.ang!==undefined?1:sl.dir;
       ctx.globalAlpha=a;ctx.strokeStyle=sl.col||'#d06bff';ctx.lineWidth=(sl.wd?sl.wd*.5:6)*a+1;ctx.lineCap='round';ctx.beginPath();
       ctx.moveTo(d*8,6);ctx.quadraticCurveTo(d*sl.len*.55,-18,d*sl.len,2);ctx.stroke();
