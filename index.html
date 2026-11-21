@@ -295,7 +295,7 @@ p{margin:0;line-height:1.35;color:var(--muted);max-width:60ch}
 #speedBtn{pointer-events:auto;height:34px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,95,210,.5);background:rgba(12,10,24,.75);color:#ff8be0;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
 #speedBtn.fast{background:#ff5fd2;color:#1a0d16}
 .spdwrap{position:relative;display:flex}
-#speedMenu{position:absolute;top:calc(100% + 6px);right:0;z-index:4;pointer-events:auto;display:grid;gap:2px;padding:4px;min-width:84px;border-radius:12px;background:rgba(12,10,24,.96);border:1px solid rgba(255,95,210,.5);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#speedMenu{position:absolute;top:calc(100% + 6px);right:0;z-index:4;pointer-events:auto;display:grid;gap:2px;padding:4px;min-width:84px;max-height:min(70vh,420px);overflow-y:auto;overscroll-behavior:contain;border-radius:12px;background:rgba(12,10,24,.96);border:1px solid rgba(255,95,210,.5);box-shadow:0 8px 24px rgba(0,0,0,.5)}
 #speedMenu[hidden]{display:none}
 #speedMenu button{appearance:none;border:0;border-radius:8px;padding:8px 12px;background:transparent;color:var(--ink);font-weight:700;font-size:17px;text-align:left;font-variant-numeric:tabular-nums}
 #speedMenu button[aria-selected="true"]{background:#ff5fd2;color:#1a0d16}
@@ -426,7 +426,7 @@ body[data-stick="der"] #abBtn{right:auto;left:calc(env(safe-area-inset-left,0px)
 .buff .ic svg{width:26px;height:26px}
 .buff strong{font-size:18px}
 .buff p{font-size:14px}
-.pips{display:flex;gap:4px;align-items:center}
+.pips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .pips i{width:16px;height:6px;border-radius:3px;background:#2e2752}
 .pips i.c.on{background:#f0b429}.pips i.g{box-shadow:inset 0 0 0 1px rgba(255,95,210,.5)}.pips i.g.on{background:#ff5fd2}
 .buff .shopitem{grid-column:1/-1;margin-top:6px;background:#14112a}
@@ -1081,7 +1081,7 @@ function payMissions(){if(!Array.isArray(SAVE.misPaid))SAVE.misPaid=[];const out
   if(out.length)persist();return out;}
 const missionDone=id=>{const m=MISSIONS.find(x=>x.id===id);return !!m&&m.prog()>=m.goal;};
 const weaponUnlocked=id=>!WDEF[id].mission||missionDone(WDEF[id].mission);
-const WMAX=20,PMAX=20;
+const WMAX=20,PMAX=20,EVO_LEVEL=40;
 const pc=v=>Math.round(v*100)+'%';
 const dec=v=>(Math.round(v*10)/10).toString().replace('.',',');
 const PDEF={
@@ -1211,7 +1211,8 @@ const RELICS={};
   apply(){for(const k in fx)RFX[k][1](fx[k]);}};});
 const relN=id=>(G&&G.relics&&G.relics[id])|0;
 // Máximos de nivel: los legendarios Yunque infernal y Corona del rey eterno suben 2 niveles más por copia
-const wMax=()=>WMAX+2*relN('yunque');
+const wBaseMax=()=>WMAX+(BF().forja|0);
+const wMax=()=>wBaseMax()+2*relN('yunque');
 const pMax=id=>(PDEF[id].max||PMAX)+(PDEF[id].fixed?1:2)*relN('coronarey');
 function rollRelicRarity(){const lk=Math.max(0,G.st.luck);let tot=0;const ws=RREL.map((r,i)=>{const w=r.w*Math.pow(1+lk,i);tot+=w;return w;});
   let x=Math.random()*tot;for(let i=0;i<ws.length;i++){x-=ws[i];if(x<=0)return i;}return 0;}
@@ -1397,15 +1398,15 @@ const BUFFS={
     desc:'Cerrás la subida de nivel sin elegir nada. +1 uso por partida en cada nivel.'},
   sabiduria:{name:'Sabiduría antigua',short:'Exp',icon:'pergamino',coin:[120,240,400,600,850,1300,1900,2700,3800,5200],gem:[13,24,40],
     desc:'+5% de experiencia en todas tus partidas por cada nivel.'},
-  velocidad:{name:'Reloj del tiempo',short:'Velocidad',icon:'reloj',gemOnly:[75,250,500,900],
-    desc:'Acelera el juego. Nivel 1 desbloquea velocidad ×2, nivel 2 hasta ×5, nivel 3 hasta ×7 y nivel 4 hasta ×10. La cambiás con el botón ×1 durante la partida o en Configuración.'},
+  velocidad:{name:'Reloj del tiempo',short:'Velocidad',icon:'reloj',max:2,gemOnly:[75,250],
+    desc:'Acelera el juego: cada nivel aumenta el tope de velocidad en ×1, hasta ×3 en nivel 2.'},
   vitalidad:{name:'Sangre de roble',short:'Vida',icon:'corazon',coin:[150,300,500,750,1100,1600,2300,3200,4400,6000],gem:[15,28,45],
     desc:'+10 de vida máxima al empezar cada partida por cada nivel.'},
   fuerza:{name:'Filo bendito',short:'Daño',icon:'grimorio',coin:[200,400,650,950,1400,2000,2900,4000,5500,7500],gem:[18,32,50],
     desc:'+4% de daño en todas tus partidas por cada nivel.'},
   codicia:{name:'Bolsillo sin fondo',short:'Monedas',icon:'bolsa',coin:[120,250,420,650,950,1400,2000,2800,3900,5300],gem:[12,22,36],
     desc:'+8% de monedas en todas tus partidas por cada nivel.'},
-  gemspawn:{name:'Imán de gemas',short:'Gemas',icon:'gema',gemOnly:[20,30,45,65,90],
+  gemspawn:{name:'Imán de gemas',short:'Gemas',icon:'gema',max:15,gemOnly:[20,30,45,65,90,120,155,195,240,290],
     desc:'+5% de probabilidad de que caigan gemas por cada nivel.'},
   imanbuff:{name:'Bolsillo magnético',short:'Imán',icon:'iman',coin:[800,1600,3000,5000,8000],gem:[30,55],
     desc:'+10% de radio de atracción de almas, monedas y gemas por cada nivel.'},
@@ -1413,14 +1414,23 @@ const BUFFS={
     desc:'+1% de probabilidad de que los enemigos suelten cofres por cada nivel.'},
   suerte:{name:'Pata de conejo',short:'Suerte',icon:'trebol',gemOnly:[25,45,70,100,140],
     desc:'+6% de suerte por cada nivel: más mejoras y reliquias de rareza alta.'},
-  herencia:{name:'Herencia del cazador',short:'Herencia',icon:'grimorio',gemOnly:[120,300],
+  herencia:{name:'Herencia del cazador',short:'Herencia',icon:'grimorio',gemOnly:[120,300,480,660,840,1020,1200,1380,1560,1740],
     desc:'Tu arma inicial arranca un nivel más alta por cada nivel.'},
+  forja:{name:'Forja de la cripta',short:'Forja',icon:'hacha',gemOnly:[100,280,460,640,820,1000,1180,1360,1540,1720],
+    desc:'+1 al nivel máximo de todas las armas por cada nivel comprado.'},
 };
-const buffMax=id=>{const B=BUFFS[id];return B.gemOnly?B.gemOnly.length:B.coin.length+(B.gem||[]).length;};
+const BUFF_MAX_LEVEL=30;
+const buffMax=id=>BUFFS[id].max||BUFF_MAX_LEVEL;
 function buffNext(id){const r=buffNext0(id);if(r)r.n=Math.round(r.n*pMul());return r;}
+function scaledBuffPrice(prices,index){
+  if(index<prices.length)return prices[index];
+  const extra=index-prices.length+1,last=prices[prices.length-1],step=last-prices[prices.length-2];
+  const prevStep=prices.length>2?prices[prices.length-2]-prices[prices.length-3]:step,growth=Math.max(0,step-prevStep);
+  return Math.round(last+step*extra+growth*extra*(extra+1)/2);}
 function buffNext0(id){const B=BUFFS[id],lv=SAVE.buffs[id]|0;
-  if(B.gemOnly)return lv<B.gemOnly.length?{gem:true,n:B.gemOnly[lv]}:null;
-  const cn=B.coin.length,gn=(B.gem||[]).length;if(lv<cn)return{gem:false,n:B.coin[lv]};if(lv<cn+gn)return{gem:true,n:B.gem[lv-cn]};return null;}
+  if(lv>=buffMax(id))return null;
+  if(B.gemOnly)return{gem:true,n:scaledBuffPrice(B.gemOnly,lv)};
+  const cn=B.coin.length;if(lv<cn)return{gem:false,n:B.coin[lv]};return{gem:true,n:scaledBuffPrice(B.gem,lv-cn)};}
 const CHARS={
   sepulturero:{name:'El Sepulturero',short:'el Sepulturero',price:0,weapon:'pala',hat:'hood',
     col:{cloak:'#3a2f6e',hood:'#4a3d8c',face:'#efe6d2',lamp:'#ffb36b'},
@@ -1580,9 +1590,9 @@ const MILE_BOSSES=[[20,'baronesa'],[30,'tejedora'],[40,'titan'],[50,'archilich']
 // Pasado el amanecer los enemigos dan un salto (vida ×1,5, daño ×1,3, velocidad ×1,15 y aparecen 50% más seguido);
 // desde el minuto 30 (LATE_M) crecen además ×1,15 de vida y ×1,10 de daño por minuto, para que ninguna partida dure para siempre
 const DAWN_M=10,LATE_M=30;
-const enemyHpMult=t=>{const m=t/60;return (1+.3*m+.01*m*m)*Math.pow(1.12,Math.max(0,Math.min(m,DAWN_M)-5))*Math.pow(1.07,Math.max(0,m-DAWN_M))*(m>=DAWN_M?1.5:1)*Math.pow(1.15,Math.max(0,m-LATE_M));};
-const enemyDmgMult=t=>{const m=t/60;return (1+.15*m+.012*m*m)*Math.pow(1.08,Math.max(0,Math.min(m,DAWN_M)-8))*Math.pow(1.04,Math.max(0,m-DAWN_M))*(m>=DAWN_M?1.3:1)*Math.pow(1.1,Math.max(0,m-LATE_M));};
-const enemySpdMult=t=>{const m=t/60;return Math.min(2.5,1+.055*m)*(m>=DAWN_M?1.15:1)*Math.min(1.6,1+.02*Math.max(0,m-LATE_M));};
+const enemyHpMult=t=>{const m=t/60;return Math.pow((1+.3*m+.01*m*m)*Math.pow(1.12,Math.max(0,Math.min(m,DAWN_M)-5))*Math.pow(1.07,Math.max(0,m-DAWN_M))*(m>=DAWN_M?1.5:1)*Math.pow(1.15,Math.max(0,m-LATE_M)),1.25);};
+const enemyDmgMult=t=>{const m=t/60;return Math.pow((1+.15*m+.012*m*m)*Math.pow(1.08,Math.max(0,Math.min(m,DAWN_M)-8))*Math.pow(1.04,Math.max(0,m-DAWN_M))*(m>=DAWN_M?1.3:1)*Math.pow(1.1,Math.max(0,m-LATE_M)),1.25);};
+const enemySpdMult=t=>{const m=t/60;return Math.min(3,1+.075*m)*(m>=DAWN_M?1.15:1)*Math.min(1.8,1+.03*Math.max(0,m-LATE_M));};
 const xpNeed=l=>Math.round(3+l*3.5+Math.pow(l,1.7)*0.6);
 
 /* ---------- Audio ---------- */
@@ -1778,7 +1788,7 @@ function spawnEnemy(type,x,y){
 // Tope total de enemigos: los enjambres no lo pasan (jefes y calabazas sí, son pocos). Sin tope, en partidas largas se acumulaban miles y el juego se congelaba
 const MAX_EN=1260;
 function spawnUpdate(dt){
-  const t=G.t,cu=1+G.st.curse,target=Math.min(t>=DAWN_M*60?1260:1140,(12+t*0.9)*cu),rate=(1.2+t/16)*cu*(t>=DAWN_M*60?1.5:1)*(1+.04*Math.max(0,t/60-LATE_M))*(G.mut.horda?1.5:1)*(DIFFS[G.diff].spawn||1);
+  const t=G.t,cu=1+G.st.curse,target=Math.min(t>=DAWN_M*60?1260:1140,(12+t*0.9)*cu),rate=3*(1.2+t/16)*cu*(t>=DAWN_M*60?1.5:1)*(1+.04*Math.max(0,t/60-LATE_M))*(G.mut.horda?1.5:1)*(DIFFS[G.diff].spawn||1);
   G.spawnAcc+=dt*rate;
   const fog=G.event&&G.event.k==='niebla';
   while(G.spawnAcc>=1){G.spawnAcc--;if(G.enemies.length<target)spawnEnemy(fog&&Math.random()<.35?'ghost':pickType(t+(DIFFS[G.diff].early||0)));}
@@ -2142,7 +2152,7 @@ $('#abBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagat
 /* ---------- Level up ---------- */
 // Con "Subidas de nivel en jefes: después del jefe" la experiencia se junta (la barra queda llena) y los niveles se suben recién cuando el jefe muere
 function gainXp(v){G.xp+=v*G.st.xpMul*(G.event&&G.event.k==='luna'?1.5:1);if(!isFinite(G.xp))G.xp=0;if(G.xp>=G.need&&!luOk()){if(!G.xpHeld){G.xpHeld=true;if(G.texts.length<60)G.texts.push({x:G.p.x,y:G.p.y-30,txt:G.afk?'Experiencia guardada hasta salir de AFK':'Experiencia guardada hasta vencer al jefe',life:1.6,heal:true});}return;}G.xpHeld=false;while(G.xp>=G.need&&G.need>0){G.xp-=G.need;G.lvl++;G.need=xpNeed(G.lvl);G.pending++;}}
-const evoReady=id=>{const D=WDEF[id];return !!D.evoFrom&&!G.weapons.some(w=>w.id===id)&&(!D.evoChar||G.char===D.evoChar)&&D.evoFrom.every(src=>{const w=G.weapons.find(x=>x.id===src);return !!w&&w.lvl>=WMAX;});};
+const evoReady=id=>{const D=WDEF[id];return !!D.evoFrom&&!G.weapons.some(w=>w.id===id)&&(!D.evoChar||G.char===D.evoChar)&&D.evoFrom.every(src=>{const w=G.weapons.find(x=>x.id===src);return !!w&&w.lvl>=EVO_LEVEL;});};
 function buildOptions(exclude){
   let pool=[];
   for(const w of G.weapons)if(w.lvl<wMax())pool.push({k:'w',id:w.id,lvl:w.lvl+1});
@@ -2883,16 +2893,18 @@ function renderHudInv(){
   $('#slotW').innerHTML=row('Armas',G.weapons.map(w=>({id:w.id,col:WDEF[w.id].col,lv:w.lvl,max:wMax(),name:WDEF[w.id].name})));
   $('#slotP').innerHTML=row('Objetos',Object.keys(G.passives).map(id=>({id,col:PDEF[id].col,lv:G.passives[id],max:pMax(id),name:PDEF[id].name})));
 }
-// Reloj del tiempo: nivel 1 deja elegir hasta ×2, nivel 2 hasta ×5, nivel 3 hasta ×7 y nivel 4 hasta ×10, con todos los pasos intermedios
-const SPEED_MAX=[1,2,5,7,10];
-const speedOpts=()=>{const lv=Math.min(SPEED_MAX.length-1,SAVE.buffs.velocidad|0),mx=SPEED_MAX[lv],o=[];for(let i=1;i<=mx;i++)o.push(i);return o;};
+// Cada nivel de Reloj del tiempo suma ×1 al máximo de velocidad
+const SPEED_MAX=[1,2,3];
+const speedCap=lv=>lv<SPEED_MAX.length?SPEED_MAX[lv]:SPEED_MAX[SPEED_MAX.length-1]+lv-(SPEED_MAX.length-1);
+const speedOpts=()=>{const lv=Math.min(buffMax('velocidad'),SAVE.buffs.velocidad|0),mx=speedCap(lv),o=[];for(let i=1;i<=mx;i++)o.push(i);return o;};
 function renderSpeed(){const b=$('#speedBtn'),o=speedOpts();b.hidden=o.length<2;if(b.hidden)closeSpeedMenu();if(!G)return;if(!o.includes(G.speed))G.speed=1;b.textContent='×'+G.speed+' ▾';b.classList.toggle('fast',G.speed>1);}
 function syncRes(){const v=!!(G&&G.speed>=5&&state!=='menu');if(v!==resLow){resLow=v;resize();}}
 function setSpeed(v){if(G)G.speed=v;syncRes();SAVE.speed=v;persist();renderSpeed();renderSpeedCfg();sfx('gem');}
 // Configuración: la misma velocidad que el botón del HUD, también sin partida (la toma la próxima)
 function renderSpeedCfg(){const el=$('#speedSeg');if(!el)return;const o=speedOpts(),cur=G?G.speed:(o.includes(SAVE.speed)?SAVE.speed:1);
   el.style.gridTemplateColumns='repeat('+Math.min(5,o.length)+',1fr)';el.innerHTML=o.map(v=>`<button role="radio" data-sp="${v}" aria-checked="${v===cur}">×${v}</button>`).join('');
-  $('#speedNote').textContent=o.length<2?'Comprá el Reloj del tiempo en la tienda para jugar más rápido, hasta ×10.':'También se cambia en partida con el botón de arriba a la derecha'+(o.length<10?' o con la tecla V. Mejorando el Reloj del tiempo en la tienda llega hasta ×10.':' o con la tecla V.');}
+  const maxSpeed=speedCap(buffMax('velocidad'));
+  $('#speedNote').textContent=o.length<2?'Comprá el Reloj del tiempo en la tienda para jugar más rápido, hasta ×'+maxSpeed+'.':'También se cambia en partida con el botón de arriba a la derecha o con la tecla V.'+((SAVE.buffs.velocidad|0)<buffMax('velocidad')?' Mejorando el Reloj del tiempo se llega hasta ×'+maxSpeed+'.':'');}
 $('#speedSeg').addEventListener('click',e=>{const b=e.target.closest('[data-sp]');if(b)setSpeed(+b.dataset.sp);});
 function renderDrops(){for(const b of document.querySelectorAll('#dropSeg [data-drop]'))b.setAttribute('aria-checked',String(!(SAVE.noDrop&&SAVE.noDrop[b.dataset.drop])));}
 $('#dropSeg').addEventListener('click',e=>{const b=e.target.closest('[data-drop]');if(!b)return;const k=b.dataset.drop;if(!SAVE.noDrop||typeof SAVE.noDrop!=='object')SAVE.noDrop={};SAVE.noDrop[k]=!SAVE.noDrop[k];persist();renderDrops();sfx('gem');});
@@ -2906,7 +2918,7 @@ const speedOpen=()=>{const m=$('#speedMenu');return !!m&&!m.hidden;};
 function toggleSpeedMenu(){if(!G)return;const m=$('#speedMenu');
   if(!m.hidden){closeSpeedMenu();return;}
   m.innerHTML=speedOpts().map(v=>`<button role="option" data-sp="${v}" aria-selected="${v===G.speed}">×${v}</button>`).join('');
-  m.hidden=false;$('#speedBtn').setAttribute('aria-expanded','true');joy.active=false;}
+  m.hidden=false;m.querySelector('[aria-selected="true"]')?.scrollIntoView({block:'nearest'});$('#speedBtn').setAttribute('aria-expanded','true');joy.active=false;}
 const speedPick=e=>{e.stopPropagation();const b=e.target.closest('[data-sp]');if(!b)return;e.preventDefault();tapGuard=performance.now();setSpeed(+b.dataset.sp);closeSpeedMenu();};
 $('#speedMenu').addEventListener('pointerdown',speedPick);
 $('#speedMenu').addEventListener('click',e=>{e.stopPropagation();if(performance.now()-tapGuard>500)speedPick(e);});
@@ -3238,6 +3250,7 @@ function renderMode(){const m=SAVE.mode;
   if(m==='mut')mb.innerHTML=Object.entries(MUTS).map(([k,M])=>`<label class="modchk"><input type="checkbox" data-mu="${k}"${SAVE.muts.includes(k)?' checked':''}> <span>${M.name} <small>· ${M.desc} · puntos ${fmtMult(M.pts)}</small></span></label>`).join('');
   $('#hcRow').hidden=m==='diario';$('#hcChk').checked=!!SAVE.hc;}
 const CHANGELOG=[
+['1.0.64','20 nov',['La mayoría de mejoras de tienda llega a nivel 30; el Reloj del tiempo llega a nivel 2 (×3) y el Imán de gemas a nivel 15.','Las evoluciones requieren que todas sus armas base lleguen al nivel 40.','Los enemigos aparecen tres veces más seguido en todas las dificultades.','La vida y el daño enemigos escalan más fuerte con el tiempo, y también aumenta su velocidad.']],
 ['1.0.63','16 nov',['Prestigio: con todo al máximo podés reiniciar a cambio de un título, la insignia ★, una moneda de prestigio, +10% de puntos para siempre y +1 nivel máximo para todos los personajes, donde elegís qué estadística sube 1%. Cada prestigio encarece todo un 50%.','Monstruario: los enemigos y jefes que derrotaste, con sus estadísticas, cómo atacan y su historia.','Cosméticos nuevos en la tienda: 3 skins (Enterrador dorado, Bruja de las nieves y Parca carmesí), estelas al caminar, efectos cuando mueren los enemigos y marcos para el retrato.','Clasificación: filtros por personaje, mapa y dificultad; tocando a alguien del top 10 ves su build; y una lista de amigos para comparar récords.','Caen menos monedas y gemas, y el bonus por tiempo es más chico.']],
 ['1.0.62','16 nov',['Dificultad nueva: Pesadilla, con el triple de vida, más daño y velocidad, y enemigos de mitad de partida desde el principio.','Modos nuevos en Personajes: Partida limpia (sin tienda ni niveles de personaje, enemigos más débiles y monedas y gemas al 1%), Mutaciones (reglas a elección que multiplican los puntos), Boss Rush (5 minutos con doble experiencia contra un jefe final gigante), Desafío diario (mismo personaje, mapa y reglas para todos) y Desafío semanal (una regla especial y 25 gemas si sobrevivís 10 minutos).','Hardcore: sin Cambiar, Bloquear ni Saltar, con ×1,15 de puntos.','La clasificación tiene una tabla por modo: General, Partida limpia, Mutaciones, Boss Rush, la del día y la de la semana.']],
 ['1.0.61','16 nov',['Pasado el amanecer los enemigos se enfurecen: más vida, daño y velocidad, y aparecen más seguido. Desde el minuto 30 crecen sin freno.','Eventos al azar durante la partida: Luna de sangre (enemigos más fuertes, pero 50% más de experiencia y puntos), Niebla (casi no se ve) y Lluvia de meteoros (esquivá las marcas: también aplastan enemigos).','Enemigos nuevos: Calavera de pólvora (explota al llegar), Carnero diabólico (apunta y embiste), Caballero sin cabeza (escudo que se come el daño) y Brujo cadavérico (invoca murciélagos).','Jefes nuevos cada 5 minutos: El Nigromante (levanta esqueletos) y El Jinete sin Cabeza (anillos de fuego). El Archiliche y el Devorador también aprendieron esos ataques.']],
@@ -3703,7 +3716,7 @@ function renderArsenal(){
     const list=all.filter(F).sort(SO);renderListTools(tools,'w',list.length,all.length,renderArsenal);if(!list.length)h=noRes;
     for(const {id} of list){const D=WDEF[id],st=Object.values(CHARS).find(c=>c.weapon===id);
     const lk=!weaponUnlocked(id),ms=D.mission&&MISSIONS.find(m=>m.id===D.mission);
-    h+=`<div class="aitem${lk?' lockd':''}"><span class="ic">${svg(lk?'candado':id,lk?'#6b6390':D.col)}</span><div><strong>${D.name}</strong><p>${D.up[0]}</p><small>${lk?'Bloqueada · misión '+ms.name+': '+ms.desc:st?'Arma inicial de '+st.short+' (arma de maestro: con ese personaje pega de +26% a +50%)':D.evo?D.evoDesc:ms?'Desbloqueada con la misión '+ms.name:'Aparece al subir de nivel'} · hasta nivel ${WMAX} (más con el Yunque infernal)</small></div></div>`;}}
+    h+=`<div class="aitem${lk?' lockd':''}"><span class="ic">${svg(lk?'candado':id,lk?'#6b6390':D.col)}</span><div><strong>${D.name}</strong><p>${D.up[0]}</p><small>${lk?'Bloqueada · misión '+ms.name+': '+ms.desc:st?'Arma inicial de '+st.short+' (arma de maestro: con ese personaje pega de +26% a +50%)':D.evo?D.evoDesc+' Requiere armas base nivel '+EVO_LEVEL+'.':ms?'Desbloqueada con la misión '+ms.name:'Aparece al subir de nivel'} · hasta nivel ${wBaseMax()} (más con el Yunque infernal)</small></div></div>`;}}
   else if(arsTab==='r'){
     const all=Object.keys(RELICS).map(id=>({id,name:RELICS[id].name,r:RELICS[id].r})),list=all.filter(x=>S.f==='all'||x.r===+S.f);
     renderListTools(tools,'r',list.length,all.length,renderArsenal);
